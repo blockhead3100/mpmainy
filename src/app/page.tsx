@@ -11,7 +11,7 @@ import { transcribeYouTubeVideo } from "@/ai/flows/transcribe-youtube-video";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, FileDown, Wand2, Download } from "lucide-react"; // Import Download icon
+import { Copy, FileDown, Wand2, Download, Link as LinkIcon } from "lucide-react"; // Import Download and Link icons
 
 export default function Home() {
   const [article, setArticle] = useState("");
@@ -19,6 +19,7 @@ export default function Home() {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [transcription, setTranscription] = useState("");
   const [conversionUrl, setConversionUrl] = useState("");
+  const [convertedFormat, setConvertedFormat] = useState<YoutubeFormat | null>(null); // Track the format
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
@@ -26,6 +27,7 @@ export default function Home() {
 
   const handleSummarize = async () => {
     setIsSummarizing(true);
+    setSummary(""); // Clear previous summary
     try {
       const result = await summarizeArticle({ article });
       setSummary(result.summary);
@@ -54,6 +56,9 @@ export default function Home() {
       return;
     }
     setIsTranscribing(true);
+    setTranscription(""); // Clear previous transcription
+    setConversionUrl(""); // Clear conversion URL if transcribing
+    setConvertedFormat(null);
     try {
       const result = await transcribeYouTubeVideo({ youtubeUrl });
       setTranscription(result.transcription);
@@ -82,12 +87,16 @@ export default function Home() {
       return;
     }
     setIsConverting(true);
+    setConversionUrl(""); // Clear previous URL
+    setTranscription(""); // Clear transcription if converting
+    setConvertedFormat(null);
     try {
       const result = await convertYoutube(youtubeUrl, format);
       setConversionUrl(result.url);
+      setConvertedFormat(format); // Set the format
       toast({
         title: `YouTube video converted to ${format.toUpperCase()}!`,
-        description: "The conversion URL has been generated.",
+        description: "The download link is ready.",
       });
     } catch (error: any) {
       toast({
@@ -111,7 +120,7 @@ export default function Home() {
 
   const handleDownloadText = (text: string, filename: string) => {
     if (!text) return;
-    const blob = new Blob([text], { type: "text/plain" });
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" }); // Specify charset
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -129,25 +138,119 @@ export default function Home() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">Article Summarizer and Media Converter</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center">Article Summarizer & Media Converter</h1>
 
-      <Tabs defaultValue="article" className="w-[100%]">
-        <TabsList>
-          <TabsTrigger value="article">Article Summarization</TabsTrigger>
-          <TabsTrigger value="youtube">YouTube Conversion/Transcription</TabsTrigger>
+      <Tabs defaultValue="youtube" className="w-full max-w-2xl mx-auto">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="youtube">YouTube Tools</TabsTrigger>
+          <TabsTrigger value="article">Article Summarizer</TabsTrigger>
         </TabsList>
-        <TabsContent value="article" className="mt-4">
-          <Card>
+
+        {/* YouTube Tab */}
+        <TabsContent value="youtube" className="mt-4 space-y-4">
+          <Card className="shadow-md rounded-lg">
             <CardHeader>
-              <CardTitle>Article Input</CardTitle>
-              <CardDescription>Paste the article text here to summarize.</CardDescription>
+              <CardTitle>YouTube Conversion & Transcription</CardTitle>
+              <CardDescription>Paste a YouTube video link below.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <Input
+                type="url"
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+                aria-label="YouTube URL Input"
+              />
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Button onClick={() => handleConvert("mp3")} disabled={isConverting || isTranscribing || !youtubeUrl} className="flex-grow sm:flex-grow-0">
+                  {isConverting && convertedFormat !== 'mp3' ? "Processing..." : (isConverting && convertedFormat === 'mp3' ? "Converting..." : <><Download className="mr-2 h-4 w-4" />Convert to MP3</>)}
+                </Button>
+                <Button onClick={() => handleConvert("mp4")} disabled={isConverting || isTranscribing || !youtubeUrl} className="flex-grow sm:flex-grow-0">
+                  {isConverting && convertedFormat !== 'mp4' ? "Processing..." : (isConverting && convertedFormat === 'mp4' ? "Converting..." : <><Download className="mr-2 h-4 w-4" />Convert to MP4</>)}
+                </Button>
+                <Button onClick={handleTranscribe} disabled={isTranscribing || isConverting || !youtubeUrl} className="flex-grow sm:flex-grow-0">
+                  {isTranscribing ? "Transcribing..." : <><Wand2 className="mr-2 h-4 w-4" />Transcribe Video</>}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {conversionUrl && convertedFormat && (
+            <Card className="mt-4 shadow-md rounded-lg">
+              <CardHeader>
+                <CardTitle>Download Your File</CardTitle>
+                 <CardDescription>Click the button to download the converted {convertedFormat.toUpperCase()} file.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center gap-2">
+                 <a
+                    href={conversionUrl}
+                    download // Add download attribute
+                    target="_blank" // Good practice for external links/downloads
+                    rel="noopener noreferrer"
+                    className="flex-grow"
+                  >
+                   <Button className="w-full">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download .{convertedFormat}
+                   </Button>
+                  </a>
+                 <Button
+                    variant="outline"
+                    size="icon"
+                    title={`Copy ${convertedFormat.toUpperCase()} Link`}
+                    onClick={() => handleCopyToClipboard(conversionUrl, `${convertedFormat.toUpperCase()} Link`)}
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                  </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {transcription && (
+            <Card className="mt-4 shadow-md rounded-lg">
+              <CardHeader>
+                <CardTitle>Transcription Result</CardTitle>
+                <CardDescription>The transcribed text from the video.</CardDescription>
+              </CardHeader>
+              <CardContent className="relative space-y-2">
+                <div className="flex justify-end gap-2 mb-2">
+                   <Button
+                    variant="outline"
+                    size="icon"
+                    title="Copy Transcription"
+                    onClick={() => handleCopyToClipboard(transcription, "Transcription")}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                   <Button
+                    variant="outline"
+                    size="icon"
+                    title="Download Transcription (.txt)"
+                    onClick={() => handleDownloadText(transcription, "transcript.txt")}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Textarea value={transcription} readOnly className="min-h-[150px] bg-muted/30 rounded-md p-3" aria-label="Transcription Output"/>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Article Summarizer Tab */}
+        <TabsContent value="article" className="mt-4 space-y-4">
+          <Card className="shadow-md rounded-lg">
+            <CardHeader>
+              <CardTitle>Article Summarization</CardTitle>
+              <CardDescription>Paste the article text below to generate a summary.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
               <Textarea
                 value={article}
                 onChange={(e) => setArticle(e.target.value)}
-                placeholder="Paste your article here..."
-                className="min-h-[100px]"
+                placeholder="Paste your full article text here..."
+                className="min-h-[150px] rounded-md"
+                aria-label="Article Input"
               />
               <Button onClick={handleSummarize} disabled={isSummarizing || !article}>
                 {isSummarizing ? "Summarizing..." : <><Wand2 className="mr-2 h-4 w-4" />Summarize Article</>}
@@ -156,15 +259,15 @@ export default function Home() {
           </Card>
 
           {summary && (
-            <Card className="mt-4">
+            <Card className="mt-4 shadow-md rounded-lg">
               <CardHeader>
-                <CardTitle>Summary</CardTitle>
-                <CardDescription>Here is the summarized text.</CardDescription>
+                <CardTitle>Summary Result</CardTitle>
+                <CardDescription>The generated summary of your article.</CardDescription>
               </CardHeader>
-              <CardContent className="relative">
-                 <div className="absolute top-2 right-2 flex gap-2">
+              <CardContent className="relative space-y-2">
+                 <div className="flex justify-end gap-2 mb-2">
                    <Button
-                     variant="secondary"
+                     variant="outline"
                      size="icon"
                      title="Copy Summary"
                      onClick={() => handleCopyToClipboard(summary, "Summary")}
@@ -172,103 +275,21 @@ export default function Home() {
                      <Copy className="h-4 w-4" />
                    </Button>
                     <Button
-                     variant="secondary"
+                     variant="outline"
                      size="icon"
-                      title="Download Summary"
+                      title="Download Summary (.txt)"
                      onClick={() => handleDownloadText(summary, "summary.txt")}
                    >
                      <Download className="h-4 w-4" />
                    </Button>
                  </div>
-                <Textarea value={summary} readOnly className="min-h-[100px]" />
+                <Textarea value={summary} readOnly className="min-h-[150px] bg-muted/30 rounded-md p-3" aria-label="Summary Output"/>
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
-        <TabsContent value="youtube" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>YouTube Link Input</CardTitle>
-              <CardDescription>Paste the YouTube video link here.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <Input
-                type="url"
-                value={youtubeUrl}
-                onChange={(e) => setYoutubeUrl(e.target.value)}
-                placeholder="Paste your YouTube link here..."
-              />
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => handleConvert("mp3")} disabled={isConverting || !youtubeUrl}>
-                  {isConverting ? "Converting..." : <><FileDown className="mr-2 h-4 w-4" />Convert to MP3</>}
-                </Button>
-                <Button onClick={() => handleConvert("mp4")} disabled={isConverting || !youtubeUrl}>
-                  {isConverting ? "Converting..." : <><FileDown className="mr-2 h-4 w-4" />Convert to MP4</>}
-                </Button>
-                <Button onClick={handleTranscribe} disabled={isTranscribing || !youtubeUrl}>
-                  {isTranscribing ? "Transcribing..." : <><Wand2 className="mr-2 h-4 w-4" />Transcribe Video</>}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {conversionUrl && (
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle>Conversion URL</CardTitle>
-                <CardDescription>Click the link to download or copy the URL.</CardDescription>
-              </CardHeader>
-              <CardContent className="relative flex items-center gap-2">
-                 <a href={conversionUrl} target="_blank" rel="noopener noreferrer" className="flex-grow">
-                    <Input type="text" value={conversionUrl} readOnly />
-                 </a>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  title="Copy Conversion URL"
-                  onClick={() => handleCopyToClipboard(conversionUrl, "Conversion URL")}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-
-              </CardContent>
-            </Card>
-          )}
-
-          {transcription && (
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle>Transcription</CardTitle>
-                <CardDescription>Here is the transcribed text.</CardDescription>
-              </CardHeader>
-              <CardContent className="relative">
-                <div className="absolute top-2 right-2 flex gap-2">
-                   <Button
-                    variant="secondary"
-                    size="icon"
-                    title="Copy Transcription"
-                    onClick={() => handleCopyToClipboard(transcription, "Transcription")}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                   <Button
-                    variant="secondary"
-                    size="icon"
-                    title="Download Transcription"
-                    onClick={() => handleDownloadText(transcription, "transcript.txt")}
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <Textarea value={transcription} readOnly className="min-h-[100px]" />
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
       </Tabs>
     </div>
   );
 }
-
