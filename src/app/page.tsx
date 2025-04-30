@@ -162,12 +162,15 @@ export default function Home() {
                 aria-label="YouTube URL Input"
               />
               <div className="flex flex-wrap gap-2 justify-center">
+                {/* Button to convert to MP3 */}
                 <Button onClick={() => handleConvert("mp3")} disabled={isConverting || isTranscribing || !youtubeUrl} className="flex-grow sm:flex-grow-0">
-                  {isConverting && convertedFormat !== 'mp3' ? "Processing..." : (isConverting && convertedFormat === 'mp3' ? "Converting..." : <><Download className="mr-2 h-4 w-4" />Convert to MP3</>)}
+                  {isConverting && convertedFormat === 'mp3' ? "Converting..." : (isConverting ? "Processing..." : <><Download className="mr-2 h-4 w-4" />Convert to MP3</>)}
                 </Button>
+                {/* Button to convert to MP4 */}
                 <Button onClick={() => handleConvert("mp4")} disabled={isConverting || isTranscribing || !youtubeUrl} className="flex-grow sm:flex-grow-0">
-                  {isConverting && convertedFormat !== 'mp4' ? "Processing..." : (isConverting && convertedFormat === 'mp4' ? "Converting..." : <><Download className="mr-2 h-4 w-4" />Convert to MP4</>)}
+                   {isConverting && convertedFormat === 'mp4' ? "Converting..." : (isConverting ? "Processing..." : <><Download className="mr-2 h-4 w-4" />Convert to MP4</>)}
                 </Button>
+                 {/* Button to transcribe video */}
                 <Button onClick={handleTranscribe} disabled={isTranscribing || isConverting || !youtubeUrl} className="flex-grow sm:flex-grow-0">
                   {isTranscribing ? "Transcribing..." : <><Wand2 className="mr-2 h-4 w-4" />Transcribe Video</>}
                 </Button>
@@ -175,6 +178,7 @@ export default function Home() {
             </CardContent>
           </Card>
 
+          {/* Display conversion result (MP3/MP4) */}
           {conversionUrl && convertedFormat && (
             <Card className="mt-4 shadow-md rounded-lg">
               <CardHeader>
@@ -206,6 +210,7 @@ export default function Home() {
             </Card>
           )}
 
+          {/* Display transcription result */}
           {transcription && (
             <Card className="mt-4 shadow-md rounded-lg">
               <CardHeader>
@@ -228,7 +233,7 @@ export default function Home() {
                     title="Download Transcription (.txt)"
                     onClick={() => handleDownloadText(transcription, "transcript.txt")}
                   >
-                    <Download className="h-4 w-4" />
+                    <Download className="h-4 w-4" /> {/* Use Download icon */}
                   </Button>
                 </div>
                 <Textarea value={transcription} readOnly className="min-h-[150px] bg-muted/30 rounded-md p-3" aria-label="Transcription Output"/>
@@ -280,7 +285,7 @@ export default function Home() {
                       title="Download Summary (.txt)"
                      onClick={() => handleDownloadText(summary, "summary.txt")}
                    >
-                     <Download className="h-4 w-4" />
+                     <Download className="h-4 w-4" /> {/* Use Download icon */}
                    </Button>
                  </div>
                 <Textarea value={summary} readOnly className="min-h-[150px] bg-muted/30 rounded-md p-3" aria-label="Summary Output"/>
