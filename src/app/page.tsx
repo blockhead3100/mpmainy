@@ -13,15 +13,10 @@ import { translateTranscription } from "@/ai/flows/translate-transcription-flow"
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Download, Link as LinkIcon, Languages, TextSelect, Wand2 } from "lucide-react"; // Added icons
+import { Copy, Download, Link as LinkIcon, Languages, TextSelect, Wand2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added import
 import { Label } from "@/components/ui/label"; // Added import
-
-// List of common languages for translation dropdown
-const languages = [
-  "English", "Spanish", "French", "German", "Chinese (Simplified)", "Japanese",
-  "Korean", "Russian", "Portuguese", "Italian", "Arabic", "Hindi", "Turkish", "Dutch"
-];
+import { supportedLanguages } from "@/ai/flows/translate-transcription-flow";
 
 export default function Home() {
   const [article, setArticle] = useState("");
@@ -30,7 +25,7 @@ export default function Home() {
   const [transcription, setTranscription] = useState("");
   const [transcriptionSummary, setTranscriptionSummary] = useState(""); // Added state
   const [translation, setTranslation] = useState(""); // Added state
-  const [targetLanguage, setTargetLanguage] = useState(languages[0]); // Default to English
+  const [targetLanguage, setTargetLanguage] = useState(supportedLanguages[0].value); // Default to English
   const [conversionUrl, setConversionUrl] = useState("");
   const [convertedFormat, setConvertedFormat] = useState<YoutubeFormat | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
@@ -395,9 +390,9 @@ export default function Home() {
                             <SelectTrigger id="language-select" className="w-full sm:w-[180px]">
                               <SelectValue placeholder="Select language" />
                             </SelectTrigger>
-                            <SelectContent>
-                              {languages.map(lang => (
-                                <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                            <SelectContent >
+                              {supportedLanguages.map(lang => (
+                                <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
